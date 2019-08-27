@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	e "github.com/newflydd/itchat4go/enum"
-	m "github.com/newflydd/itchat4go/model"
-	s "github.com/newflydd/itchat4go/service" // service中的包路径不对
+	e "itchat4go/enum"
+	m "itchat4go/model"
+	s "itchat4go/service" // service中的包路径不对
 	"os"
 	"regexp"
 	"strings"
