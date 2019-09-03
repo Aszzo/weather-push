@@ -8,6 +8,7 @@ import (
 	"os"
 	//"strings"
 	"time"
+	"github.com/robfig/cron"
 )
 
 var (
@@ -70,10 +71,6 @@ func main() {
 
 	fmt.Println("开始获取联系人信息...")
 	contactMap, err = s.GetAllContact(&loginMap)
-	// 可获取所有联系人的NickName.可以维护一个推送信息的名单
-	for _,value := range(contactMap){
-		fmt.Println(value.NickName)
-	}
 	if err != nil {
 		panicErr(err)
 	}
@@ -93,6 +90,7 @@ func main() {
 	}
 
 	fmt.Println("开始监听消息响应...")
+	timer();
 	var retcode, selector int64
 	//regAt := regexp.MustCompile(`^@.*@.*丁丁.*$`) /* 群聊时其他人说话时会在前面加上@XXX */
 	//regGroup := regexp.MustCompile(`^@@.+`)
@@ -123,12 +121,11 @@ func main() {
 						wxRecvMsges.MsgList[i].Content)
 					wxSendMsg := m.WxSendMsg{}
 					wxSendMsg.Type = 1
-					wxSendMsg.Content = "我是微信机器人，我已帮你通知我的主人N'，请您稍等片刻，他会跟您联系"
+					wxSendMsg.Content = "我是N'的微信机器人，我已帮你通知我的主人，请您稍等片刻，他会跟您联系"
 					wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
 					wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
 					wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
 					wxSendMsg.ClientMsgId = wxSendMsg.LocalID
-
 					/* 加点延时，避免消息次序混乱，同时避免微信侦察到机器人 */
 					time.Sleep(time.Second)
 
@@ -234,3 +231,41 @@ func printErr(err error) {
 		fmt.Println(err)
 	}
 }
+func senMessage(content string)  {
+	// 维护推送的人员名单
+	pushMemberName := []string{"N'"}
+	fmt.Println(pushMemberName)
+
+	// 可获取所有联系人的NickName.可以维护一个推送信息的名单
+	for _,value := range(contactMap){
+
+		for _, u := range pushMemberName{
+			if u == value.NickName && u != "" {
+				fmt.Println(u)
+				wxSendMsg := m.WxSendMsg{}
+				wxSendMsg.Type = 1
+				wxSendMsg.Content = content
+				wxSendMsg.FromUserName = loginMap.SelfUserName
+				wxSendMsg.ToUserName = value.UserName
+				wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
+				wxSendMsg.ClientMsgId = wxSendMsg.LocalID
+
+				time.Sleep(time.Second)
+
+				go s.SendMsg(&loginMap, wxSendMsg)
+			}
+		}
+	}
+}
+
+func timer() {
+	c := cron.New()
+	spec := "0 * 22 * * ?"
+	c.AddFunc(spec, func() {
+		senMessage("发送消息--" + time.Now().Format("2006/01/02 15:04:05"))
+	})
+	c.Start()
+
+	select{}
+}
+
