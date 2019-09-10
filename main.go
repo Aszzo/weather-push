@@ -4,11 +4,12 @@ import (
 	"fmt"
 	e "itchat4go/enum"
 	m "itchat4go/model"
-	s "itchat4go/service" // service中的包路径不对
+	s "itchat4go/service"
 	"os"
 	//"strings"
 	"time"
 	"github.com/robfig/cron"
+	"github.com/Aszzo/weather-push/weather"
 )
 
 var (
@@ -260,9 +261,12 @@ func senMessage(content string)  {
 
 func timer() {
 	c := cron.New()
-	spec := "0 * 22 * * ?"
+	spec := "*/15 * * * * ?"
 	c.AddFunc(spec, func() {
 		senMessage("发送消息--" + time.Now().Format("2006/01/02 15:04:05"))
+		resp, _ := weather.GetWeather("北京");
+		fmt.Println(resp.Results)
+
 	})
 	c.Start()
 
