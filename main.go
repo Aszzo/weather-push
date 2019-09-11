@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	e "itchat4go/enum"
-	m "itchat4go/model"
-	s "itchat4go/service"
+	e "github.com/Aszzo/itchat4go/enum"
+	m "github.com/Aszzo/itchat4go/model"
+	s "github.com/Aszzo/itchat4go/service"
 	"os"
 	//"strings"
 	"time"

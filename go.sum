@@ -1,0 +1,4 @@
+github.com/Aszzo/itchat4go v0.0.0-20190911035021-d11ada06441c h1:ogHfZ/Tqs1JzlBFdSxAWNEScp2Oiuc2W5hiEOd0tTHU=
+github.com/Aszzo/itchat4go v0.0.0-20190911035021-d11ada06441c/go.mod h1:7Tsn5MbksHvL/Tyjb4FgE2YMui+F4YLmxvnSJDchEqs=
+github.com/robfig/cron v1.2.0 h1:ZjScXvvxeQ63Dbyxy76Fj3AT3Ut0aKsyd2/tl3DTMuQ=
+github.com/robfig/cron v1.2.0/go.mod h1:JGuDeoQd7Z6yL4zQhZ3OPEVHB7fL6Ka6skscFHfmt2k=

@@ -1,6 +1,0 @@
-# github.com/newflydd/itchat4go v0.0.0-20171212161254-1eabed25c8ed
-github.com/newflydd/itchat4go/enum
-github.com/newflydd/itchat4go/model
-github.com/newflydd/itchat4go/service
-# github.com/robfig/cron v1.2.0
-github.com/robfig/cron

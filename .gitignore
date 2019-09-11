@@ -1,5 +1,4 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea
-go.mod
-go.sum
+.DS_Store
 qrcode
