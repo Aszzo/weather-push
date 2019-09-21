@@ -6,10 +6,10 @@ import (
 	m "github.com/Aszzo/itchat4go/model"
 	s "github.com/Aszzo/itchat4go/service"
 	"os"
+	"github.com/Aszzo/weather-push/weather"
+	"github.com/robfig/cron"
 	//"strings"
 	"time"
-	"github.com/robfig/cron"
-	"github.com/Aszzo/weather-push/weather"
 )
 
 var (
@@ -91,7 +91,7 @@ func main() {
 	}
 
 	fmt.Println("开始监听消息响应...")
-	timer();
+	c := timer();
 	var retcode, selector int64
 	//regAt := regexp.MustCompile(`^@.*@.*丁丁.*$`) /* 群聊时其他人说话时会在前面加上@XXX */
 	//regGroup := regexp.MustCompile(`^@@.+`)
@@ -104,120 +104,121 @@ func main() {
 			printErr(err)
 			if retcode == 1101 {
 				fmt.Println("帐号已在其他地方登陆，程序将退出。")
+				c.Stop();
 				os.Exit(2)
 			}
 			continue
 		}
 
-		if retcode == 0 && selector != 0 {
-			fmt.Printf("selector=%d,有新消息产生,准备拉取...\n", selector)
-			wxRecvMsges, err := s.WebWxSync(&loginMap)
-			panicErr(err)
-
-			for i := 0; i < wxRecvMsges.MsgCount; i++ {
-				if wxRecvMsges.MsgList[i].MsgType == 1 {
-					/* 普通文本消息 */
-					fmt.Println(
-						contactMap[wxRecvMsges.MsgList[i].FromUserName].NickName+":",
-						wxRecvMsges.MsgList[i].Content)
-					wxSendMsg := m.WxSendMsg{}
-					wxSendMsg.Type = 1
-					wxSendMsg.Content = "我是N'的微信机器人，我已帮你通知我的主人，请您稍等片刻，他会跟您联系"
-					wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
-					wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
-					wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
-					wxSendMsg.ClientMsgId = wxSendMsg.LocalID
-					/* 加点延时，避免消息次序混乱，同时避免微信侦察到机器人 */
-					time.Sleep(time.Second)
-
-					go s.SendMsg(&loginMap, wxSendMsg)
-
-					//if regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName) && regAt.MatchString(wxRecvMsges.MsgList[i].Content) {
-					//	/* 有人在群里@我，发个消息回答一下 */
-					//	wxSendMsg := m.WxSendMsg{}
-					//	wxSendMsg.Type = 1
-					//	wxSendMsg.Content = "我是丁丁编写的微信机器人，我已帮你通知我的主人，请您稍等片刻，他会跟您联系"
-					//	wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
-					//	wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
-					//	wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
-					//	wxSendMsg.ClientMsgId = wxSendMsg.LocalID
-					//
-					//	/* 加点延时，避免消息次序混乱，同时避免微信侦察到机器人 */
-					//	time.Sleep(time.Second)
-					//
-					//	go s.SendMsg(&loginMap, wxSendMsg)
-					//} else if (!regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName)) && regAd.MatchString(wxRecvMsges.MsgList[i].Content) {
-					//	/* 有人私聊我，并且内容含有「朋友圈」、「点赞」等敏感词，则回复 */
-					//	wxSendMsg := m.WxSendMsg{}
-					//	wxSendMsg.Type = 1
-					//	wxSendMsg.Content = "我是丁丁编写的微信机器人，我已经感应到一些敏感字符，我的主人对微商、朋友圈集赞、砍价等活动不感兴趣，请不要再发这些请求给他了，Sorry！"
-					//	wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
-					//	wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
-					//	wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
-					//	wxSendMsg.ClientMsgId = wxSendMsg.LocalID
-					//
-					//	time.Sleep(time.Second)
-					//
-					//	go s.SendMsg(&loginMap, wxSendMsg)
-					//} else if (!regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName)) && strings.EqualFold(wxRecvMsges.MsgList[i].Content, secretCode) {
-					//	/* 有人私聊我，并且内容是密语，输出加群菜单 */
-					//	wxSendMsg := m.WxSendMsg{}
-					//	wxSendMsg.Type = 1
-					//	wxSendMsg.Content = fmt.Sprintf("我是丁丁编写的微信群聊助手，我为您提供了以下分组关键词：\n\n%s\n您可以输入上方关键词或者其索引号获取更详细的群聊目录，比如您可以输入\"编程\"或者\"1-0\"，我会为您细化系统内所有与计算机编程相关的领域，您可以进一步选择加入该领域的微信群聊。", e.GetFatherKeywordsStr())
-					//	wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
-					//	wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
-					//	wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
-					//	wxSendMsg.ClientMsgId = wxSendMsg.LocalID
-					//
-					//	time.Sleep(time.Second)
-					//
-					//	go s.SendMsg(&loginMap, wxSendMsg)
-					//} else if !regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName) {
-					//	/* 有人私聊我，依次判断是否是父级目录结构，输出子目录 */
-					//	count := 0
-					//	content := wxRecvMsges.MsgList[i].Content
-					//	for _, v := range e.GetFocusGroupKeywords() {
-					//		reg := regexp.MustCompile("^(" + strings.ToLower(v.FatherName) + ")$")
-					//		if reg.MatchString(strings.ToLower(content)) {
-					//			/* 判断为父级目录 */
-					//			description, keywords, exampleStr := e.GetChildKeywordsInfo(v.FatherName)
-					//			wxSendMsg := m.WxSendMsg{}
-					//			wxSendMsg.Type = 1
-					//			wxSendMsg.Content = fmt.Sprintf("%s\n\n%s\n您可以输入以上关键词或者其索引号，我会为您寻找系统内的微信群组并邀请您加入，比如您可以输入%s", description, exampleStr, keywords)
-					//			wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
-					//			wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
-					//			wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
-					//			wxSendMsg.ClientMsgId = wxSendMsg.LocalID
-					//
-					//			time.Sleep(time.Second)
-					//
-					//			go s.SendMsg(&loginMap, wxSendMsg)
-					//			break
-					//		}
-					//		count++
-					//	}
-					//
-					//	if count != len(e.GetFocusGroupKeywords()) {
-					//		continue
-					//	}
-					//
-					//	/* 依次判断是否为子目录 */
-					//	for key, groupUsers := range groupMap {
-					//		reg := regexp.MustCompile("^(" + strings.ToLower(key) + ")$")
-					//		if reg.MatchString(strings.ToLower(content)) {
-					//			/* 判断为子目录 */
-					//			for _, user := range groupUsers {
-					//				time.Sleep(time.Second)
-					//				go s.InviteMember(&loginMap, wxRecvMsges.MsgList[i].FromUserName, user.UserName)
-					//			}
-					//
-					//			break
-					//		}
-					//	}
-					//}
-				}
-			}
-		}
+		//if retcode == 0 && selector != 0 {
+		//	fmt.Printf("selector=%d,有新消息产生,准备拉取...\n", selector)
+		//	wxRecvMsges, err := s.WebWxSync(&loginMap)
+		//	panicErr(err)
+		//
+		//	for i := 0; i < wxRecvMsges.MsgCount; i++ {
+		//		if wxRecvMsges.MsgList[i].MsgType == 1 {
+		//			/* 普通文本消息 */
+		//			fmt.Println(
+		//				contactMap[wxRecvMsges.MsgList[i].FromUserName].NickName+":",
+		//				wxRecvMsges.MsgList[i].Content)
+		//			wxSendMsg := m.WxSendMsg{}
+		//			wxSendMsg.Type = 1
+		//			wxSendMsg.Content = "我是N'的微信机器人，我已帮你通知我的主人，请您稍等片刻，他会跟您联系"
+		//			wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
+		//			wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
+		//			wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
+		//			wxSendMsg.ClientMsgId = wxSendMsg.LocalID
+		//			/* 加点延时，避免消息次序混乱，同时避免微信侦察到机器人 */
+		//			time.Sleep(time.Second)
+		//
+		//			go s.SendMsg(&loginMap, wxSendMsg)
+		//
+		//			//if regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName) && regAt.MatchString(wxRecvMsges.MsgList[i].Content) {
+		//			//	/* 有人在群里@我，发个消息回答一下 */
+		//			//	wxSendMsg := m.WxSendMsg{}
+		//			//	wxSendMsg.Type = 1
+		//			//	wxSendMsg.Content = "我是丁丁编写的微信机器人，我已帮你通知我的主人，请您稍等片刻，他会跟您联系"
+		//			//	wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
+		//			//	wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
+		//			//	wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
+		//			//	wxSendMsg.ClientMsgId = wxSendMsg.LocalID
+		//			//
+		//			//	/* 加点延时，避免消息次序混乱，同时避免微信侦察到机器人 */
+		//			//	time.Sleep(time.Second)
+		//			//
+		//			//	go s.SendMsg(&loginMap, wxSendMsg)
+		//			//} else if (!regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName)) && regAd.MatchString(wxRecvMsges.MsgList[i].Content) {
+		//			//	/* 有人私聊我，并且内容含有「朋友圈」、「点赞」等敏感词，则回复 */
+		//			//	wxSendMsg := m.WxSendMsg{}
+		//			//	wxSendMsg.Type = 1
+		//			//	wxSendMsg.Content = "我是丁丁编写的微信机器人，我已经感应到一些敏感字符，我的主人对微商、朋友圈集赞、砍价等活动不感兴趣，请不要再发这些请求给他了，Sorry！"
+		//			//	wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
+		//			//	wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
+		//			//	wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
+		//			//	wxSendMsg.ClientMsgId = wxSendMsg.LocalID
+		//			//
+		//			//	time.Sleep(time.Second)
+		//			//
+		//			//	go s.SendMsg(&loginMap, wxSendMsg)
+		//			//} else if (!regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName)) && strings.EqualFold(wxRecvMsges.MsgList[i].Content, secretCode) {
+		//			//	/* 有人私聊我，并且内容是密语，输出加群菜单 */
+		//			//	wxSendMsg := m.WxSendMsg{}
+		//			//	wxSendMsg.Type = 1
+		//			//	wxSendMsg.Content = fmt.Sprintf("我是丁丁编写的微信群聊助手，我为您提供了以下分组关键词：\n\n%s\n您可以输入上方关键词或者其索引号获取更详细的群聊目录，比如您可以输入\"编程\"或者\"1-0\"，我会为您细化系统内所有与计算机编程相关的领域，您可以进一步选择加入该领域的微信群聊。", e.GetFatherKeywordsStr())
+		//			//	wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
+		//			//	wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
+		//			//	wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
+		//			//	wxSendMsg.ClientMsgId = wxSendMsg.LocalID
+		//			//
+		//			//	time.Sleep(time.Second)
+		//			//
+		//			//	go s.SendMsg(&loginMap, wxSendMsg)
+		//			//} else if !regGroup.MatchString(wxRecvMsges.MsgList[i].FromUserName) {
+		//			//	/* 有人私聊我，依次判断是否是父级目录结构，输出子目录 */
+		//			//	count := 0
+		//			//	content := wxRecvMsges.MsgList[i].Content
+		//			//	for _, v := range e.GetFocusGroupKeywords() {
+		//			//		reg := regexp.MustCompile("^(" + strings.ToLower(v.FatherName) + ")$")
+		//			//		if reg.MatchString(strings.ToLower(content)) {
+		//			//			/* 判断为父级目录 */
+		//			//			description, keywords, exampleStr := e.GetChildKeywordsInfo(v.FatherName)
+		//			//			wxSendMsg := m.WxSendMsg{}
+		//			//			wxSendMsg.Type = 1
+		//			//			wxSendMsg.Content = fmt.Sprintf("%s\n\n%s\n您可以输入以上关键词或者其索引号，我会为您寻找系统内的微信群组并邀请您加入，比如您可以输入%s", description, exampleStr, keywords)
+		//			//			wxSendMsg.FromUserName = wxRecvMsges.MsgList[i].ToUserName
+		//			//			wxSendMsg.ToUserName = wxRecvMsges.MsgList[i].FromUserName
+		//			//			wxSendMsg.LocalID = fmt.Sprintf("%d", time.Now().Unix())
+		//			//			wxSendMsg.ClientMsgId = wxSendMsg.LocalID
+		//			//
+		//			//			time.Sleep(time.Second)
+		//			//
+		//			//			go s.SendMsg(&loginMap, wxSendMsg)
+		//			//			break
+		//			//		}
+		//			//		count++
+		//			//	}
+		//			//
+		//			//	if count != len(e.GetFocusGroupKeywords()) {
+		//			//		continue
+		//			//	}
+		//			//
+		//			//	/* 依次判断是否为子目录 */
+		//			//	for key, groupUsers := range groupMap {
+		//			//		reg := regexp.MustCompile("^(" + strings.ToLower(key) + ")$")
+		//			//		if reg.MatchString(strings.ToLower(content)) {
+		//			//			/* 判断为子目录 */
+		//			//			for _, user := range groupUsers {
+		//			//				time.Sleep(time.Second)
+		//			//				go s.InviteMember(&loginMap, wxRecvMsges.MsgList[i].FromUserName, user.UserName)
+		//			//			}
+		//			//
+		//			//			break
+		//			//		}
+		//			//	}
+		//			//}
+		//		}
+		//	}
+		//}
 	}
 }
 
@@ -232,17 +233,25 @@ func printErr(err error) {
 		fmt.Println(err)
 	}
 }
-func senMessage(content string)  {
+func sendWeather() {
 	// 维护推送的人员名单
-	pushMemberName := []string{"N'"}
+	//pushMemberName := []string{"N'"}
+	pushMemberName := map[string]string{
+		"N'": "北京丰台区",
+		//"文又又。": "北京丰台区",
+	}
 	fmt.Println(pushMemberName)
 
 	// 可获取所有联系人的NickName.可以维护一个推送信息的名单
-	for _,value := range(contactMap){
+	for _, value := range (contactMap) {
 
-		for _, u := range pushMemberName{
-			if u == value.NickName && u != "" {
-				fmt.Println(u)
+		for k, u := range pushMemberName {
+			if k == value.NickName && k != "" {
+				fmt.Println(k+ ":" +u)
+
+				resp, _ := weather.GetWeather(u)
+				content := u + "今日天气预报\n" + resp.Results[0].WeatherData[0].Date +"\n" + resp.Results[0].WeatherData[0].Weather + " " + resp.Results[0].WeatherData[0].Wind + " " + resp.Results[0].WeatherData[0].Temperature
+				content += "\n ——-来自您的贴心天气小助手"
 				wxSendMsg := m.WxSendMsg{}
 				wxSendMsg.Type = 1
 				wxSendMsg.Content = content
@@ -254,22 +263,20 @@ func senMessage(content string)  {
 				time.Sleep(time.Second)
 
 				go s.SendMsg(&loginMap, wxSendMsg)
+
 			}
 		}
 	}
 }
 
-func timer() {
+func timer() *cron.Cron{
 	c := cron.New()
 	spec := "*/15 * * * * ?"
 	c.AddFunc(spec, func() {
-		senMessage("发送消息--" + time.Now().Format("2006/01/02 15:04:05"))
-		resp, _ := weather.GetWeather("北京");
-		fmt.Println(resp.Results)
-
+		sendWeather()
 	})
 	c.Start()
 
-	select{}
+	select {}
+	return c;
 }
-

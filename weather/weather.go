@@ -55,14 +55,6 @@ func GetWeather(city string) (results, error) {
 		fmt.Errorf("请求失败,错误信息:\r\n%v",err)
 		return netReturn, err
 	}
-	//else{
-	//
-	//	//if netReturn["error"].(float64)==0{
-	//	//	//fmt.Printf("接口返回result字段是:\r\n%v",netReturn["results"])
-	//	//	return netReturn, err
-	//	//}
-	//	return netReturn, err
-	//}
 	return netReturn, err
 }
 // get 网络请求
